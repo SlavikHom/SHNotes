@@ -3,7 +3,7 @@ let catalog=[],course='all',active=null,viewer=null,eventBus=null,linkService=nu
 let memory={};try{memory=JSON.parse(localStorage.getItem('shnotes.reading.v1')||'{}')}catch{}
 if(!memory||typeof memory!=='object')memory={};
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const name=c=>c==='logic'?'Математическая логика':'Дискретная математика';
+const name=c=>c==='logic'?'Матлог':'Дискретка';
 const pageOf=id=>Math.max(1,Math.min(catalog.find(x=>x.id===id)?.pages||1,Number.isInteger(memory[id]?.page)?memory[id].page:1));
 const lectureLabel=x=>x.number==null?'КОНСПЕКТ':`ЛЕКЦИЯ ${String(x.number).padStart(2,'0')}`;
 const plural=(n,one,few,many)=>n%10===1&&n%100!==11?one:n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?few:many;
@@ -21,7 +21,7 @@ function render(){
  $('#resume').hidden=!last;
  if(last){$('#resume-title').textContent=last.title;$('#resume-page').textContent=`Стр. ${pageOf(last.id)} из ${last.pages}`;}
 }
-document.querySelectorAll('[data-course]').forEach(b=>b.onclick=()=>{course=b.dataset.course;$('#breadcrumb').textContent=course==='all'?'БИБЛИОТЕКА':course==='logic'?'МАТЛОГИКА':'ДИСКРЕТНАЯ';render()});
+document.querySelectorAll('[data-course]').forEach(b=>b.onclick=()=>{course=b.dataset.course;$('#breadcrumb').textContent=course==='all'?'БИБЛИОТЕКА':course==='logic'?'МАТЛОГ':'ДИСКРЕТКА';render()});
 $('#catalog-search').oninput=render;
 $('#cards').onclick=e=>{const b=e.target.closest('[data-id]');if(b)location.hash=`read/${b.dataset.id}`};
 $('#resume').onclick=()=>{location.hash=`read/${memory.last}`};
@@ -55,7 +55,7 @@ async function openReader(item,page){
  $('#library').hidden=true;$('#reader').hidden=false;document.body.style.overflow='hidden';
  $('#reader').classList.toggle('no-outline',innerWidth<=650);$('#reader').classList.remove('focus');
  $('#toggle-outline').setAttribute('aria-expanded',innerWidth>650);
- $('#reader-title').textContent=item.title;$('#reader-course').textContent=`${name(item.course)} / ${lectureLabel(item)}`;
+ $('#reader-title').textContent=item.title;$('#reader-title').title=item.title;$('#reader-course').textContent=`${name(item.course)} / ${lectureLabel(item)}`;
  document.title=`${item.title} — SH Notes`;
  $('#download').href=item.file;$('#page-count').textContent=item.pages;$('#page-number').max=item.pages;
  $('#outline-count').textContent=item.outline.filter(x=>x.level===1).length;

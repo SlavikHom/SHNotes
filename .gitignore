@@ -2,3 +2,14 @@ AGENTS.md
 _site/
 __pycache__/
 *.pyc
+
+# Local credentials and service configuration must not be published.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.openai/
+.codex/
