@@ -1,1 +1,4 @@
 AGENTS.md
+_site/
+__pycache__/
+*.pyc
