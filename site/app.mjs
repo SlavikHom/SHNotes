@@ -6,6 +6,7 @@ import {offlineCommand} from './offline.mjs';
 const $ = selector => document.querySelector(selector);
 const container = $('#viewerContainer');
 const compactReader = matchMedia('(max-width:900px), (max-width:1200px) and (pointer:coarse)');
+const narrowCatalog = matchMedia('(max-width:400px)');
 let catalog = [], course = 'all', active = null, viewer, eventBus, linkService, findController;
 let loadingTask, viewerInit, loadId = 0, ready = false, restoring = false;
 let memory = {}, bookmarks = {}, saved = [], lastPosition, fittedWidth = 0, refitFrame = 0;
@@ -42,7 +43,8 @@ function rememberPosition({history = true} = {}) {
   if (!point) return;
   lastPosition = point;
   memory[active.id] = point; memory.last = active.id; persist();
-  if (history) historyReplace(positionHash(active.id, point));
+  // A deferred PDF update must not undo navigation back to the library.
+  if (history && parseRoute(location.hash, catalog)?.item.id === active.id) historyReplace(positionHash(active.id, point));
 }
 function historyReplace(hash) {
   const url = new URL(location.href); url.hash = hash; history.replaceState(null, '', url);
@@ -59,6 +61,7 @@ window.addEventListener('pagehide', () => {rememberPosition(); persistNow()});
 function render() {
   const query = normalize($('#catalog-search').value).trim();
   const textMode = $('#search-scope').value === 'text';
+  updateSearchLabel();
   const list = catalog.filter(item => (course === 'all' || item.course === course) && (textMode || normalize(`${item.title} ${item.description} ${name(item.course)} ${item.number ?? ''}`).includes(query)));
   $('#cards').hidden = textMode && !!query;
   $('#text-results').hidden = !textMode || !query;
@@ -83,6 +86,12 @@ function render() {
     searchTimer = setTimeout(() => globalSearch(query, list, request), 180);
   }
 }
+function updateSearchLabel() {
+  const textMode = $('#search-scope').value === 'text';
+  $('#catalog-search').placeholder = narrowCatalog.matches ? 'Поиск…' : textMode ? 'Слово в PDF' : 'Найти лекцию';
+  $('#catalog-search').setAttribute('aria-label', textMode ? 'Найти в тексте PDF' : 'Найти лекцию');
+}
+narrowCatalog.addEventListener('change', updateSearchLabel);
 async function globalSearch(query, items, request) {
   try {
     searchIndex ||= fetch('./search-index.json').then(async response => {if (!response.ok) throw Error(); return response.json()}).catch(error => {searchIndex = null; throw error});
@@ -107,7 +116,7 @@ $('#text-results').onclick = event => {
   if (button) location.hash = `read/${button.dataset.id}/${button.dataset.page}?q=${encodeURIComponent($('#catalog-search').value.trim())}`;
 };
 $('#resume').onclick = () => location.hash = `read/${memory.last}`;
-$('#back').onclick = () => {rememberPosition({history: false}); location.hash = ''};
+$('#back').onclick = () => {clearTimeout(positionTimer); rememberPosition({history: false}); location.hash = ''};
 
 async function initViewer() {
   if (viewerInit) return viewerInit;
@@ -269,7 +278,7 @@ $('#menu-find').onclick = () => {$('#reader-menu').close(); showFind()};
 $('#menu-bookmarks').onclick = () => {renderBookmarks(); showDialog('#bookmarks-dialog')};
 function renderBookmarks() {
   const entries = Array.isArray(bookmarks[active.id]) ? bookmarks[active.id] : [];
-  $('#bookmark-list').innerHTML = entries.length ? entries.map(entry => `<div class="saved-row"><button data-bookmark="${escape(entry.id)}"><strong>${escape(entry.title)}</strong><small>Стр. ${entry.position.page}</small></button><button data-rename="${escape(entry.id)}" aria-label="Переименовать: ${escape(entry.title)}">✎</button><button data-delete="${escape(entry.id)}" aria-label="Удалить: ${escape(entry.title)}">×</button></div>`).join('') : '<p class="dialog-note">Закладок пока нет. Сохраните место с понятным названием.</p>';
+  $('#bookmark-list').innerHTML = entries.length ? entries.map(entry => `<div class="saved-row"><button data-bookmark="${escape(entry.id)}"><strong>${escape(entry.title)}</strong><small>Стр. ${entry.position.page}</small></button><button data-rename="${escape(entry.id)}" aria-label="Переименовать: ${escape(entry.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button><button data-delete="${escape(entry.id)}" aria-label="Удалить: ${escape(entry.title)}">×</button></div>`).join('') : '<p class="dialog-note">Закладок пока нет. Сохраните место с понятным названием.</p>';
 }
 $('#bookmark-form').onsubmit = event => {
   event.preventDefault(); if (!ready) return toast('Дождитесь открытия конспекта.');

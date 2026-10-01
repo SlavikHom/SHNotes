@@ -39,6 +39,9 @@ dialog::backdrop{background:#0009}.dialog-heading{display:flex;align-items:cente
 .primary{background:#22483f;border:1px solid #3e7967;border-radius:6px;color:var(--mint);min-height:44px;padding:8px 14px;font-size:14px}
 dialog input{min-width:0;width:100%;height:44px;background:#09151e;border:1px solid #36525f;color:var(--ink);border-radius:5px;padding:10px;font-size:16px}#bookmark-form label{display:block;color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:10px}.bookmark-create{display:flex;gap:8px}.bookmark-create .primary{flex-shrink:0}
 .saved-list{margin-top:18px}.saved-row{display:flex;gap:4px;align-items:center;border-top:1px solid var(--line);padding:8px 0}.saved-row button{min-width:44px;min-height:44px;border-radius:5px}.saved-row button:first-child{flex:1;text-align:left;min-width:0;padding:8px}.saved-row strong{font-size:14px;font-weight:500;display:block;overflow-wrap:anywhere}.saved-row small{display:block;color:var(--muted);font-size:12px;margin-top:6px}.saved-row>button:not(:first-child){font-size:22px}#share-dialog .primary{margin-top:14px}
+.reader input:focus-visible,dialog input:focus-visible{outline:none;border-color:var(--mint);box-shadow:0 0 0 2px #62dfb91a}
+.saved-row svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+@media(max-width:480px){.bookmark-create{flex-direction:column;gap:10px}.bookmark-create>.primary,#share-dialog .primary{width:100%}}
 .toast{position:fixed;bottom:max(18px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:100;width:max-content;max-width:calc(100% - 32px);background:#19342e;color:#def9ec;border:1px solid #46715e;border-radius:8px;padding:12px 18px;font-size:14px;line-height:1.5;box-shadow:0 8px 30px #0007;pointer-events:none}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:1150px){.reader{--sidebar:245px}.back span{display:none}.reader-header{gap:4px;padding-inline:10px}.reader-heading{padding-inline:8px}}
@@ -58,4 +61,5 @@ dialog input{min-width:0;width:100%;height:44px;background:#09151e;border:1px so
  .reader{--header:calc(52px + env(safe-area-inset-top))}.reader-header{display:flex;gap:2px;padding-top:env(safe-area-inset-top)}.reader-heading{display:none}.reader-tools{height:52px;border:0;flex:1;width:auto;gap:3px}.reader.focus .reader-tools{gap:4px}
  .reader-tools #zoom-in,.reader-tools #zoom-out,.reader-tools #toggle-find,.tool-divider{display:none}
 }
+@media(max-width:400px){.findbar{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,44px);gap:6px;padding:10px}.findbar input{grid-column:1/-1;height:44px}.findbar span{font-size:12px;min-width:0;padding-left:2px}.findbar button{width:44px;height:44px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}

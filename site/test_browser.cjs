@@ -28,6 +28,11 @@ after(async () => {
   }
 });
 const loaded = page => page.waitForFunction(() => document.querySelector('#reader-status').hidden);
+async function visualProof(page, name) {
+  if (!process.env.SHNOTES_VISUAL_DIR) return;
+  await fs.mkdir(process.env.SHNOTES_VISUAL_DIR, {recursive: true});
+  await page.screenshot({path: path.join(process.env.SHNOTES_VISUAL_DIR, name + '.png')});
+}
 const settle = page => page.waitForTimeout(650);
 async function memory(page) {
   // Storage is deliberately deferred until scrolling/rendering settles.
@@ -69,6 +74,21 @@ test('library and reader fit narrow phones, tablets and landscape; focus exit st
     try {
       const page = await context.newPage(); await page.goto(base); await page.locator('.lecture-card').first().waitFor();
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `catalog overflows at ${width}`);
+      const navigation = await page.locator('.library-sidebar').boundingBox();
+      const viewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      if (width <= 900) assert.ok(Math.abs(navigation.width - viewportWidth) < 2, `navigation is capped by PDF styles at ${width}`);
+      assert.equal(await page.locator('#manage-offline').evaluate(e => e.closest('.library-sidebar') !== null), true);
+      assert.equal(await page.locator('#manage-offline').evaluate(e => e.closest('footer') !== null), false);
+      const alignment = await page.evaluate(() => {
+        const select=document.querySelector('#search-scope').getBoundingClientRect(),input=document.querySelector('#catalog-search').getBoundingClientRect();
+        return Math.abs(select.top+select.height/2-input.top-input.height/2);
+      });
+      assert.ok(alignment < 1, `search controls are not aligned at ${width}`);
+      const topbar = await page.locator('.topbar').boundingBox();
+      await page.locator('#catalog-search').fill('несуществующая лекция'); await page.locator('#empty').waitFor();
+      const emptyTopbar = await page.locator('.topbar').boundingBox();
+      assert.ok(Math.abs(topbar.y - emptyTopbar.y) < 1, `empty search stretches or shifts the header at ${width}`);
+      await page.locator('#catalog-search').fill('');
       await page.locator('.lecture-card').first().click(); await loaded(page);
       assert.ok(await page.evaluate(() => [...document.querySelectorAll('.reader-header button,.page-control')].filter(e => e.getClientRects().length).every(e => {const r=e.getBoundingClientRect(); return r.left>=0 && r.right<=innerWidth+1})), `reader overflows at ${width}`);
       for (const id of ['previous', 'next', 'fit', 'focus-mode', 'reader-more']) {
@@ -124,6 +144,7 @@ test('named bookmarks can be opened, renamed and deleted; sharing preserves the 
     await page.locator('#reader-more').click(); await page.locator('#menu-bookmarks').click();
     await page.locator('#bookmark-name').fill('Доказательство <важное>'); await page.locator('#bookmark-form button').click();
     assert.equal(await page.locator('[data-bookmark]').innerText(), 'Доказательство <важное>\nСтр. 4');
+    await visualProof(page, 'bookmarks-populated');
     await page.locator('[data-rename]').click(); await page.locator('#bookmark-name').fill('Теорема'); await page.locator('#bookmark-form button').click();
     await page.locator('#bookmarks-dialog [data-close]').click(); await pageNumber(page, 8);
     await page.locator('#reader-more').click(); await page.locator('#menu-bookmarks').click(); await page.locator('[data-bookmark]').click();
@@ -132,6 +153,7 @@ test('named bookmarks can be opened, renamed and deleted; sharing preserves the 
     // Headless browsers may offer the native share API; avoid platform dialogs.
     if (await page.locator('#share-dialog').isVisible()) {
       const link = await page.locator('#share-link').inputValue(); assert.match(link, /\/4\?x=.*&y=.*&z=/);
+      await visualProof(page, 'share-link');
       const other = await context.newPage(); await other.goto(link); await loaded(other);
       assert.equal(await other.locator('#page-number').inputValue(), '4'); await other.close();
       await page.locator('#share-dialog [data-close]').click();
@@ -165,6 +187,9 @@ test('saved lecture reopens with network disabled and supports byte ranges; save
     await page.locator('#reader-more').click(); await page.locator('#save-offline').click();
     await page.waitForFunction(() => document.querySelector('#save-offline span').textContent.startsWith('Сохранено'), null, {timeout: 45000});
     await page.locator('#reader-menu [data-close]').click();
+    await page.locator('#back').click(); await page.locator('#manage-offline').click();
+    await page.locator('[data-remove]').waitFor(); await visualProof(page, 'offline-populated');
+    await page.locator('#offline-dialog [data-close]').click(); await page.locator('#resume').click(); await loaded(page);
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
     // Playwright's WebKit offline flag rejects SW responses before dispatch:
     // https://github.com/microsoft/playwright/issues/42775
@@ -177,17 +202,20 @@ test('saved lecture reopens with network disabled and supports byte ranges; save
       return {status: response.status, length: (await response.arrayBuffer()).byteLength, contentRange: response.headers.get('Content-Range')};
     });
     assert.equal(range.status, 206); assert.equal(range.length, 100); assert.match(range.contentRange, /^bytes 0-99\//);
-    await page.locator('#back').click(); await page.locator('#manage-offline').click(); await page.locator('[data-remove]').click();
+    await page.locator('#back').click(); await page.locator('#library').waitFor({state:'visible'});
+    assert.equal(new URL(page.url()).hash, '', 'PDF updates must not reopen the reader after returning to the library');
+    await page.locator('#manage-offline').click(); await page.locator('[data-remove]').click();
     await page.waitForFunction(() => !document.querySelector('[data-remove]'));
     assert.match(await page.locator('#offline-list').innerText(), /Пока нет/);
   } finally {await context.close(); await origin.stop()}
 });
 
 test('failed PDF load offers retry and a direct link; rapid navigation does not attach a stale document', async () => {
-  const context = await browser.newContext({serviceWorkers: 'block'});
+  const context = await browser.newContext({serviceWorkers: 'block', viewport: {width: 390, height: 844}, hasTouch: true});
   try {
     const page = await context.newPage(); await page.route('**/*.pdf?*', route => route.abort());
     await page.goto(base); await page.locator('.lecture-card').first().click(); await page.locator('#retry-pdf').waitFor();
+    await visualProof(page, 'reader-error');
     assert.match(await page.locator('#fallback-pdf').getAttribute('href'), /#page=1$/);
     await page.unroute('**/*.pdf?*'); await page.locator('#retry-pdf').click(); await loaded(page);
     await page.locator('#back').click(); await page.locator('.lecture-card').nth(1).click(); await page.locator('#back').click();
