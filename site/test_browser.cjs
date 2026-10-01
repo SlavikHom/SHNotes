@@ -90,6 +90,17 @@ test('library and reader fit narrow phones, tablets and landscape; focus exit st
       assert.ok(Math.abs(topbar.y - emptyTopbar.y) < 1, `empty search stretches or shifts the header at ${width}`);
       await page.locator('#catalog-search').fill('');
       await page.locator('.lecture-card').first().click(); await loaded(page);
+      const pager = await page.locator('.reader-pagination').evaluate(e => {
+        const input=e.querySelector('input'), total=e.querySelector('#page-count'), arrows=[...e.querySelectorAll('button')];
+        const elements=[input,...arrows], centers=elements.map(element=>{const r=element.getBoundingClientRect();return r.top+r.height/2});
+        const horizontal=[input,e.querySelector('.page-separator'),total].map(element=>{const r=element.getBoundingClientRect();return r.left+r.width/2});
+        return {inputFont:getComputedStyle(input).fontSize,totalFont:getComputedStyle(total).fontSize,centerSpread:Math.max(...centers)-Math.min(...centers),heights:elements.map(element=>element.getBoundingClientRect().height),spacingDifference:Math.abs(horizontal[1]-horizontal[0]-(horizontal[2]-horizontal[1]))};
+      });
+      assert.equal(pager.inputFont, pager.totalFont, `page numbers use different sizes at ${width}`);
+      assert.ok(pager.centerSpread < 1 && pager.heights.every(height=>height>=44), `page controls are misaligned or hard to tap at ${width}`);
+      assert.ok(pager.spacingDifference < 1, `page counter spacing is asymmetric at ${width}`);
+      assert.ok(await page.locator('.reader-header svg').evaluateAll(elements=>elements.filter(e=>e.getClientRects().length).every(e=>{const r=e.getBoundingClientRect();return r.width===20&&r.height===20})), `toolbar icons use inconsistent sizes at ${width}`);
+      await visualProof(page, `reader-${width}`);
       assert.ok(await page.evaluate(() => [...document.querySelectorAll('.reader-header button,.page-control')].filter(e => e.getClientRects().length).every(e => {const r=e.getBoundingClientRect(); return r.left>=0 && r.right<=innerWidth+1})), `reader overflows at ${width}`);
       for (const id of ['previous', 'next', 'fit', 'focus-mode', 'reader-more']) {
         const box = await page.locator('#' + id).boundingBox(); assert.ok(box.width >= 44 && box.height >= 44, `${id} target at ${width}`);

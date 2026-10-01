@@ -17,6 +17,7 @@ $('#reader').addEventListener('wheel', event => {
   if (active && (event.ctrlKey || event.metaKey)) event.preventDefault();
 }, {passive: false});
 const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const removeIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>';
 const name = course => course === 'logic' ? 'Матлог' : 'Дискретка';
 const lectureLabel = item => item.number == null ? 'КОНСПЕКТ' : `ЛЕКЦИЯ ${String(item.number).padStart(2, '0')}`;
 const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many;
@@ -247,7 +248,6 @@ function updateFocusButton() {
   $('#focus-mode').setAttribute('aria-pressed', String(focused));
   $('#focus-mode').setAttribute('aria-label', focused ? 'Выйти из режима чтения' : 'Режим сосредоточенного чтения');
   $('#focus-mode').title = focused ? 'Выйти из режима чтения' : 'Режим сосредоточенного чтения';
-  $('#focus-mode').textContent = focused ? '×' : '⛶';
 }
 function toggleFocus() {preserveLayout(() => {$('#reader').classList.toggle('focus'); updateFocusButton()})}
 $('#toggle-outline').onclick = () => {if ($('#reader').classList.contains('focus')) toggleFocus(); setOutline($('#reader').classList.contains('no-outline'))};
@@ -278,7 +278,7 @@ $('#menu-find').onclick = () => {$('#reader-menu').close(); showFind()};
 $('#menu-bookmarks').onclick = () => {renderBookmarks(); showDialog('#bookmarks-dialog')};
 function renderBookmarks() {
   const entries = Array.isArray(bookmarks[active.id]) ? bookmarks[active.id] : [];
-  $('#bookmark-list').innerHTML = entries.length ? entries.map(entry => `<div class="saved-row"><button data-bookmark="${escape(entry.id)}"><strong>${escape(entry.title)}</strong><small>Стр. ${entry.position.page}</small></button><button data-rename="${escape(entry.id)}" aria-label="Переименовать: ${escape(entry.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button><button data-delete="${escape(entry.id)}" aria-label="Удалить: ${escape(entry.title)}">×</button></div>`).join('') : '<p class="dialog-note">Закладок пока нет. Сохраните место с понятным названием.</p>';
+  $('#bookmark-list').innerHTML = entries.length ? entries.map(entry => `<div class="saved-row"><button data-bookmark="${escape(entry.id)}"><strong>${escape(entry.title)}</strong><small>Стр. ${entry.position.page}</small></button><button data-rename="${escape(entry.id)}" aria-label="Переименовать: ${escape(entry.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button><button data-delete="${escape(entry.id)}" aria-label="Удалить: ${escape(entry.title)}">${removeIcon}</button></div>`).join('') : '<p class="dialog-note">Закладок пока нет. Сохраните место с понятным названием.</p>';
 }
 $('#bookmark-form').onsubmit = event => {
   event.preventDefault(); if (!ready) return toast('Дождитесь открытия конспекта.');
@@ -336,7 +336,7 @@ $('#save-offline').onclick = async () => {
   finally {saving = false; updateOfflineButton()}
 };
 function renderOffline() {
-  $('#offline-list').innerHTML = saved.length ? saved.map(record => `<div class="saved-row"><button data-saved="${record.id}"><strong>${escape(record.title)}</strong><small>${(record.size / 1024 / 1024).toFixed(2)} МБ · ${new Date(record.savedAt).toLocaleDateString('ru')}</small></button><button data-remove="${record.id}" aria-label="Удалить сохранённый PDF: ${escape(record.title)}">×</button></div>`).join('') : '<p class="dialog-note">Пока нет сохранённых конспектов.</p>';
+  $('#offline-list').innerHTML = saved.length ? saved.map(record => `<div class="saved-row"><button data-saved="${record.id}"><strong>${escape(record.title)}</strong><small>${(record.size / 1024 / 1024).toFixed(2)} МБ · ${new Date(record.savedAt).toLocaleDateString('ru')}</small></button><button data-remove="${record.id}" aria-label="Удалить сохранённый PDF: ${escape(record.title)}">${removeIcon}</button></div>`).join('') : '<p class="dialog-note">Пока нет сохранённых конспектов.</p>';
 }
 $('#manage-offline').onclick = async () => {
   showDialog('#offline-dialog'); $('#offline-status').textContent = 'Проверяем сохранённые файлы…';

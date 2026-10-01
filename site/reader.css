@@ -1,18 +1,23 @@
 /* PDF controls are independent of the precompiled document's layout. */
 .reader{position:fixed;inset:0 0 auto;height:100vh;height:100dvh;background:#19242d;--sidebar:280px;--header:68px;z-index:10}
 .reader-header{position:absolute;inset:0 0 auto;height:var(--header);display:flex;align-items:center;gap:10px;padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));background:#0a151e;border-bottom:1px solid var(--line);z-index:4}
-.reader-header button,.reader-header .back{flex-shrink:0;min-width:44px;height:44px;border-radius:5px;color:#b1c3ca;font-size:22px;padding:0}
+.reader-header button,.reader-header .back{display:grid;place-items:center;flex-shrink:0;min-width:44px;height:44px;border-radius:5px;color:#b1c3ca;font-size:14px;padding:0;line-height:1}
+.reader-header svg,.findbar svg,dialog svg{width:20px;height:20px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#focus-mode .focus-exit,#focus-mode[aria-pressed="true"] .focus-enter{display:none}#focus-mode[aria-pressed="true"] .focus-exit{display:block}
 .reader-header button:hover,.menu-actions button:hover{background:#263c45;color:var(--mint)}
-.back{display:flex;align-items:center;justify-content:center;gap:8px}
+.reader-header .back{display:flex;align-items:center;justify-content:center;gap:8px}
 .back span{font-size:13px}
 .reader-heading{flex:1;min-width:0;padding:0 10px;border-left:1px solid #34404a}
 .reader-heading small{display:block;font-size:9px;letter-spacing:1px;color:var(--mint);margin-bottom:5px}
 .reader-heading strong{display:block;font-weight:500;font-size:14px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
-.reader-tools{display:flex;align-items:center;gap:3px;flex-shrink:0}
-.reader-tools .fit{flex:0 0 88px;width:88px;min-width:88px;font-size:12px;font-variant-numeric:tabular-nums}
-.tool-divider{width:1px;height:20px;background:#34434d;margin:0 3px}.tool-spacer{display:none}
-.page-control{display:flex;align-items:center;gap:4px;font-size:12px;color:#91a7b3;white-space:nowrap}
-.page-control input{width:44px;height:44px;font-size:16px;border:1px solid #36505a;background:#0a151e;border-radius:4px;color:var(--ink);text-align:center;appearance:textfield}
+.reader-tools{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.reader-tools .fit{flex:0 0 76px;width:76px;min-width:76px;font-size:14px;font-variant-numeric:tabular-nums}
+.tool-divider{width:1px;height:20px;background:#34434d;margin:0}.tool-spacer{display:none}
+.reader-pagination{display:flex;align-items:center;flex-shrink:0;height:44px;border-radius:6px;background:#101e28;box-shadow:inset 0 0 0 1px #30434e}
+.reader-pagination>button{width:44px}
+.page-control{display:grid;grid-template-columns:32px 16px 32px;align-items:center;height:44px;font-size:16px;line-height:1;color:#b1c3ca;white-space:nowrap;font-variant-numeric:tabular-nums;text-align:center}
+.page-control input{width:32px;height:44px;padding:0;font:inherit;border:0;background:transparent;border-radius:4px;color:var(--ink);text-align:center;appearance:textfield}
+.page-control input:hover{background:#1b303a}.reader .page-control input:focus-visible{box-shadow:inset 0 0 0 1px var(--mint);background:#17312e}
 .page-control input::-webkit-inner-spin-button{appearance:none}
 .outline-panel{position:absolute;left:0;top:var(--header);bottom:0;width:var(--sidebar);background:#0d1a23;border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:3}
 .outline-label{height:52px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:11px;letter-spacing:1.6px;color:#9aacb7;border-bottom:1px solid var(--line)}.outline-label span{color:#5f7a87}
@@ -31,11 +36,11 @@
 .reader.focus{--header:52px;--sidebar:0px}.reader.focus .outline-panel,.reader.focus .back,.reader.focus .reader-heading,.reader.focus #toggle-outline{display:none}.reader.focus .reader-header{justify-content:center}.reader.focus .reader-tools{margin:0 auto}
 .findbar{position:absolute;right:12px;top:calc(var(--header) + 12px);z-index:5;display:flex;align-items:center;gap:6px;padding:8px;border:1px solid #47636b;background:#10212b;box-shadow:0 8px 25px #0005;border-radius:7px;max-width:calc(100% - 16px)}
 .findbar input{background:#0a161e;border:1px solid #36525f;border-radius:4px;color:var(--ink);padding:9px 10px;font-size:16px;width:220px;min-width:0}
-.findbar button{font-size:20px;width:44px;min-width:44px;height:44px;padding:0}.findbar span{font-size:11px;min-width:40px;color:#98b2bc}.textLayer .highlight{background:#81dca77a}.textLayer .highlight.selected{background:#ffb94f99}
+.findbar button{display:grid;place-items:center;width:44px;min-width:44px;height:44px;padding:0}.findbar span{font-size:11px;min-width:40px;color:#98b2bc}.textLayer .highlight{background:#81dca77a}.textLayer .highlight.selected{background:#ffb94f99}
 dialog{color:var(--ink);background:#101f29;border:1px solid #3b555f;border-radius:12px;padding:20px;width:min(480px,calc(100vw - 24px));max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;box-shadow:0 20px 70px #0008;overscroll-behavior:contain}
-dialog::backdrop{background:#0009}.dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.dialog-heading h2{font-size:18px;font-weight:500;margin:0;min-width:0}.dialog-heading button{min-width:44px;height:44px;font-size:26px;border-radius:6px}
+dialog::backdrop{background:#0009}.dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.dialog-heading h2{font-size:18px;font-weight:500;margin:0;min-width:0}.dialog-heading button{display:grid;place-items:center;min-width:44px;height:44px;border-radius:6px}
 .dialog-note{font-size:14px;line-height:1.6;color:var(--muted)}.menu-actions{display:grid;gap:6px}.menu-actions>button,.menu-actions>a{display:flex;align-items:center;gap:16px;text-align:left;min-height:48px;padding:10px 12px;border-radius:6px;font-size:20px}.menu-actions button span,.menu-actions>a{font-size:14px}.menu-actions>a{color:var(--mint)}
-.menu-zoom{display:flex;align-items:center;justify-content:space-between;border-block:1px solid var(--line);margin:6px 0;padding:6px}.menu-zoom button{width:48px;height:44px;font-size:24px}.menu-zoom span{font-size:13px;color:var(--muted)}
+.menu-zoom{display:flex;align-items:center;justify-content:space-between;border-block:1px solid var(--line);margin:6px 0;padding:6px}.menu-zoom button{display:grid;place-items:center;width:48px;height:44px}.menu-zoom span{font-size:14px;color:var(--muted)}
 .primary{background:#22483f;border:1px solid #3e7967;border-radius:6px;color:var(--mint);min-height:44px;padding:8px 14px;font-size:14px}
 dialog input{min-width:0;width:100%;height:44px;background:#09151e;border:1px solid #36525f;color:var(--ink);border-radius:5px;padding:10px;font-size:16px}#bookmark-form label{display:block;color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:10px}.bookmark-create{display:flex;gap:8px}.bookmark-create .primary{flex-shrink:0}
 .saved-list{margin-top:18px}.saved-row{display:flex;gap:4px;align-items:center;border-top:1px solid var(--line);padding:8px 0}.saved-row button{min-width:44px;min-height:44px;border-radius:5px}.saved-row button:first-child{flex:1;text-align:left;min-width:0;padding:8px}.saved-row strong{font-size:14px;font-weight:500;display:block;overflow-wrap:anywhere}.saved-row small{display:block;color:var(--muted);font-size:12px;margin-top:6px}.saved-row>button:not(:first-child){font-size:22px}#share-dialog .primary{margin-top:14px}
@@ -49,16 +54,16 @@ dialog input{min-width:0;width:100%;height:44px;background:#09151e;border:1px so
  .reader{--sidebar:0px;--header:calc(104px + env(safe-area-inset-top))}
  .reader-header{display:grid;grid-template-columns:44px 44px minmax(0,1fr) 44px;grid-template-rows:52px 52px;gap:0;padding:env(safe-area-inset-top) max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left))}
  #toggle-outline{grid-column:1}.back{grid-column:2}.reader-heading{grid-column:3;border:0}.reader-heading strong{font-size:13px}#reader-more{grid-column:4}
- .reader-tools{grid-column:1/-1;grid-row:2;height:52px;width:100%;justify-content:center;gap:6px;border-top:1px solid var(--line)}
+ .reader-tools{grid-column:1/-1;grid-row:2;height:52px;width:100%;justify-content:center;gap:8px;border-top:1px solid var(--line)}
  .reader-tools #zoom-in,.reader-tools #zoom-out,.reader-tools #toggle-find,.tool-divider{display:none}
  .reader-tools .fit{flex-basis:76px;min-width:76px;width:76px}
  .outline-panel{width:min(300px,85vw);box-shadow:15px 0 40px #0007}.reader:not(.no-outline):not(.focus) .outline-dismiss{display:block;position:absolute;inset:var(--header) 0 0;z-index:2;background:#0006}
- .reader.focus{--header:calc(52px + env(safe-area-inset-top))}.reader.focus .reader-header{display:flex;gap:0;padding-top:env(safe-area-inset-top)}.reader.focus .reader-tools{width:auto;flex:1;gap:4px;border:0}.reader.focus #reader-more{display:none}
+ .reader.focus{--header:calc(52px + env(safe-area-inset-top))}.reader.focus .reader-header{display:flex;gap:0;padding-top:env(safe-area-inset-top)}.reader.focus .reader-tools{width:auto;flex:1;gap:8px;border:0}.reader.focus #reader-more{display:none}
  #viewerContainer{left:env(safe-area-inset-left);right:env(safe-area-inset-right)}
  .findbar{left:8px;right:8px;gap:0}.findbar input{width:100%}.findbar span{min-width:35px;font-size:10px}
 }
 @media(max-height:500px) and (min-width:500px) and (max-width:1200px){
- .reader{--header:calc(52px + env(safe-area-inset-top))}.reader-header{display:flex;gap:2px;padding-top:env(safe-area-inset-top)}.reader-heading{display:none}.reader-tools{height:52px;border:0;flex:1;width:auto;gap:3px}.reader.focus .reader-tools{gap:4px}
+ .reader{--header:calc(52px + env(safe-area-inset-top))}.reader-header{display:flex;gap:2px;padding-top:env(safe-area-inset-top)}.reader-heading{display:none}.reader-tools{height:52px;border:0;flex:1;width:auto;gap:8px}.reader.focus .reader-tools{gap:8px}
  .reader-tools #zoom-in,.reader-tools #zoom-out,.reader-tools #toggle-find,.tool-divider{display:none}
 }
 @media(max-width:400px){.findbar{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,44px);gap:6px;padding:10px}.findbar input{grid-column:1/-1;height:44px}.findbar span{font-size:12px;min-width:0;padding-left:2px}.findbar button{width:44px;height:44px}}
