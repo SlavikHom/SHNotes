@@ -13,6 +13,7 @@ from urllib.parse import quote
 import pymupdf
 
 COURSES = {"MathLog": ("logic", "Математическая логика"), "DM": ("discrete", "Дискретная математика")}
+PUBLIC_FILES = ("index.html", "style.css", "app.mjs", "reader-touch.mjs", "reading-state.mjs", "search.mjs", "offline.mjs", "sw.js", "reader.css")
 
 
 def join_lines(lines):
@@ -61,11 +62,11 @@ def build(root, output):
     with tempfile.TemporaryDirectory(prefix="shnotes-build-", dir=output.parent) as temp:
         stage = Path(temp) / "public"
         stage.mkdir()
-        for file in ("index.html", "style.css", "app.mjs", "reader-touch.mjs"):
+        for file in PUBLIC_FILES:
             shutil.copy2(root / "site" / file, stage / file)
         shutil.copytree(root / "site" / "vendor", stage / "vendor")
         (stage / "covers").mkdir()
-        catalog = []
+        catalog, search_pages = [], []
         for directory, (course, course_name) in COURSES.items():
             for source in sorted((root / directory).iterdir()):
                 if not source.is_file() or source.suffix.lower() != ".pdf":
@@ -87,6 +88,10 @@ def build(root, output):
                                         description=description, pages=len(document),
                                         file=quote(relative, safe="/") + "?v=" + digest[:16],
                                         cover=cover + "?v=" + digest[:16], outline=outline))
+                    for index, page in enumerate(document):
+                        text = join_lines(page.get_text(sort=True).splitlines())
+                        if text:
+                            search_pages.append(dict(id=identifier, page=index + 1, text=text))
                 target = stage / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, target)
@@ -95,16 +100,32 @@ def build(root, output):
         order = {course: index for index, (course, _) in enumerate(COURSES.values())}
         catalog.sort(key=lambda x: (order[x["course"]], x["number"] or 0, x["title"]))
         (stage / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2), encoding="utf-8")
+        (stage / "search-index.json").write_text(json.dumps(search_pages, ensure_ascii=False), encoding="utf-8")
         (stage / ".nojekyll").touch()
-        # Version the imported gesture module too, so a deploy cannot mix revisions.
+        # Dependencies are versioned before their importing app. The worker's shell
+        # includes these exact URLs, so offline reading uses one build throughout.
         app = stage / "app.mjs"
-        touch_revision = hashlib.sha256((stage / "reader-touch.mjs").read_bytes()).hexdigest()[:12]
-        app.write_text(app.read_text(encoding="utf-8").replace("'./reader-touch.mjs'", f"'./reader-touch.mjs?v={touch_revision}'"), encoding="utf-8")
+        versions = {}
+        for filename in ("reader-touch.mjs", "reading-state.mjs", "search.mjs", "offline.mjs", "catalog.json", "search-index.json"):
+            versions[filename] = hashlib.sha256((stage / filename).read_bytes()).hexdigest()[:12]
+        source = app.read_text(encoding="utf-8")
+        for filename, revision in versions.items():
+            source = source.replace(f"'./{filename}'", f"'./{filename}?v={revision}'")
+        app.write_text(source, encoding="utf-8")
         html = (stage / "index.html").read_text(encoding="utf-8")
-        for filename in ("app.mjs", "style.css"):
+        for filename in ("app.mjs", "style.css", "reader.css"):
             revision = hashlib.sha256((stage / filename).read_bytes()).hexdigest()[:12]
+            versions[filename] = revision
             html = html.replace(f'"{filename}"', f'"{filename}?v={revision}"')
         (stage / "index.html").write_text(html, encoding="utf-8")
+        core = ["index.html", "vendor/web/pdf_viewer.css"] + [f"{file}?v={revision}" for file, revision in versions.items()] + [x["cover"] for x in catalog]
+        assets = sorted(p.relative_to(stage).as_posix() for p in (stage / "vendor").rglob("*") if p.is_file())
+        engine_revision = hashlib.sha256(b"".join(path.encode() + hashlib.sha256((stage / path).read_bytes()).digest() for path in assets)).hexdigest()[:16]
+        revision = hashlib.sha256((html + json.dumps(versions) + engine_revision).encode()).hexdigest()[:16]
+        config = dict(revision=revision, engineRevision=engine_revision, core=core, assets=assets)
+        (stage / "offline-manifest.json").write_text(json.dumps(config), encoding="utf-8")
+        worker = stage / "sw.js"
+        worker.write_text("const CONFIG = " + json.dumps(config) + ";\n" + worker.read_text(encoding="utf-8"), encoding="utf-8")
         if output.exists():
             if output.is_symlink():
                 raise ValueError("Output must not be a symlink")

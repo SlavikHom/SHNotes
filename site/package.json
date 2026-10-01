@@ -1,0 +1,6 @@
+{
+  "name": "shnotes-browser-checks",
+  "private": true,
+  "scripts": {"test": "node --test test_reader_touch.mjs test_reading_state.mjs test_browser.cjs"},
+  "devDependencies": {"playwright": "1.62.1"}
+}

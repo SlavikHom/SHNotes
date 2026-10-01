@@ -32,8 +32,25 @@ jobs:
       - name: Build catalog, covers and reader
         run: |
           node --test site/test_reader_touch.mjs
+          node --test site/test_reading_state.mjs
           python site/test_build.py
           python site/build.py
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Install browser checks
+        working-directory: site
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium webkit
+      - name: Check Chromium reader
+        run: node --test site/test_browser.cjs
+      - name: Check WebKit reader
+        env:
+          BROWSER: webkit
+        run: node --test site/test_browser.cjs
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site

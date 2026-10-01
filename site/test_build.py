@@ -1,6 +1,7 @@
 """Regression checks for automatic addition, replacement and removal of PDFs."""
 import importlib.util
 import tempfile
+import json
 import unittest
 from pathlib import Path
 import pymupdf
@@ -17,7 +18,7 @@ class BuildTests(unittest.TestCase):
             root = Path(temp)
             for directory in ("site/vendor", "MathLog", "DM"):
                 (root / directory).mkdir(parents=True)
-            for file in ("index.html", "style.css", "app.mjs", "reader-touch.mjs"):
+            for file in builder.PUBLIC_FILES:
                 (root / "site" / file).write_text('"app.mjs" "style.css"', encoding="utf-8")
             (root / "site" / "app.mjs").write_text("import './reader-touch.mjs';", encoding="utf-8")
             pdf = root / "MathLog" / "lecture-01.pdf"
@@ -33,6 +34,13 @@ class BuildTests(unittest.TestCase):
             first_app = (out / "app.mjs").read_text(encoding="utf-8")
             first_html = (out / "index.html").read_text(encoding="utf-8")
             self.assertIn("reader-touch.mjs?v=", first_app)
+            index = json.loads((out / "search-index.json").read_text(encoding="utf-8"))
+            self.assertEqual(index[0]["text"], "First lecture")
+            self.assertEqual(index[0]["page"], 1)
+            self.assertEqual(index[0]["id"], first[0]["id"])
+            manifest = json.loads((out / "offline-manifest.json").read_text())
+            self.assertTrue(any(path.startswith("catalog.json?v=") for path in manifest["core"]))
+            self.assertIn("const CONFIG = ", (out / "sw.js").read_text())
             # Updating only a dependency must invalidate the importing app too.
             (root / "site" / "reader-touch.mjs").write_text("// Updated gestures", encoding="utf-8")
             with pymupdf.open(pdf) as doc:
