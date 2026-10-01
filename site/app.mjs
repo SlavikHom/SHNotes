@@ -1,5 +1,9 @@
+import {installPDFTouchGestures} from './reader-touch.mjs';
 const $=s=>document.querySelector(s);
 let catalog=[],course='all',active=null,viewer=null,eventBus=null,linkService=null,findController=null,loadingTask=null,loadId=0;
+const compactReader=matchMedia('(max-width:900px), (max-width:1200px) and (pointer:coarse)');
+let fittedWidth=0,refitFrame=0;
+const resetTouch=installPDFTouchGestures($('#viewerContainer'),()=>active?viewer:null);
 let memory={};try{memory=JSON.parse(localStorage.getItem('shnotes.reading.v1')||'{}')}catch{}
 if(!memory||typeof memory!=='object')memory={};
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -33,12 +37,12 @@ async function initViewer(){
  pdfjs.GlobalWorkerOptions.workerSrc=new URL('./vendor/build/pdf.worker.mjs',import.meta.url).href;
  const ui=await import('./vendor/web/pdf_viewer.mjs');
  eventBus=new ui.EventBus();linkService=new ui.PDFLinkService({eventBus});findController=new ui.PDFFindController({eventBus,linkService});
- viewer=new ui.PDFViewer({container:$('#viewerContainer'),viewer:$('#viewer'),eventBus,linkService,findController,annotationEditorMode:-1});
+ viewer=new ui.PDFViewer({container:$('#viewerContainer'),viewer:$('#viewer'),eventBus,linkService,findController,annotationEditorMode:-1,removePageBorders:true});
  linkService.setViewer(viewer);
- eventBus.on('pagesinit',()=>{if(!active)return;viewer.currentScaleValue='page-width';viewer.currentPageNumber=Math.min(active.pages,Math.max(1,active.initialPage));});
+ eventBus.on('pagesinit',()=>{if(!active)return;fittedWidth=$('#viewerContainer').clientWidth;viewer.currentScaleValue='page-width';viewer.currentPageNumber=Math.min(active.pages,Math.max(1,active.initialPage));});
  eventBus.on('pagerendered',()=>{$('#reader-status').hidden=true});
  eventBus.on('pagechanging',({pageNumber})=>{if(!active)return;updatePage(pageNumber)});
- eventBus.on('scalechanging',({scale,presetValue})=>{$('#fit').textContent=presetValue==='page-width'?'По ширине':`${Math.round(scale*100)}%`});
+ eventBus.on('scalechanging',({scale,presetValue})=>{$('#fit').textContent=presetValue==='page-width'?(innerWidth<=560?'Ширина':'По ширине'):`${Math.round(scale*100)}%`});
  eventBus.on('updatefindmatchescount',({matchesCount})=>{$('#find-results').textContent=`${matchesCount.current} / ${matchesCount.total}`});
  eventBus.on('updatefindcontrolstate',({state,matchesCount})=>{$('#find-results').textContent=state===1?'Не найдено':state===3?'Поиск…':`${matchesCount?.current||0} / ${matchesCount?.total||0}`});
 }
@@ -51,10 +55,11 @@ function updatePage(page){
 }
 async function openReader(item,page){
  const thisLoad=++loadId;
+ resetTouch();
  active={...item,initialPage:page||pageOf(item.id)};
  $('#library').hidden=true;$('#reader').hidden=false;document.body.style.overflow='hidden';
- $('#reader').classList.toggle('no-outline',innerWidth<=650);$('#reader').classList.remove('focus');
- $('#toggle-outline').setAttribute('aria-expanded',innerWidth>650);
+ $('#reader').classList.remove('focus');$('#focus-mode').setAttribute('aria-pressed','false');
+ setOutline(!compactReader.matches);
  $('#reader-title').textContent=item.title;$('#reader-title').title=item.title;$('#reader-course').textContent=`${name(item.course)} / ${lectureLabel(item)}`;
  document.title=`${item.title} — SH Notes`;
  $('#download').href=item.file;$('#page-count').textContent=item.pages;$('#page-number').max=item.pages;
@@ -70,19 +75,23 @@ async function openReader(item,page){
   viewer.setDocument(doc);linkService.setDocument(doc);updatePage(Math.min(item.pages,Math.max(1,active.initialPage)));
  }catch(err){if(thisLoad!==loadId)return;$('#reader-status').textContent='Не удалось открыть читалку. Скачайте PDF кнопкой справа вверху.';console.error(err)}
 }
-function route(){const m=location.hash.match(/^#read\/([a-z0-9-]+)(?:\/(\d+))?$/);const item=m&&catalog.find(x=>x.id===m[1]);if(item){openReader(item,+m[2]||0)}else{loadId++;active=null;$('#reader').hidden=true;$('#library').hidden=false;document.body.style.overflow='';document.title='SH Notes — Библиотека';render();}}
+function route(){const m=location.hash.match(/^#read\/([a-z0-9-]+)(?:\/(\d+))?$/);const item=m&&catalog.find(x=>x.id===m[1]);if(item){openReader(item,+m[2]||0)}else{loadId++;resetTouch();active=null;$('#reader').hidden=true;$('#library').hidden=false;document.body.style.overflow='';document.title='SH Notes — Библиотека';render();}}
 window.addEventListener('hashchange',route);
-$('#outline').onclick=e=>{const b=e.target.closest('[data-page]');if(b&&viewer?.pdfDocument){viewer.currentPageNumber=+b.dataset.page;if(innerWidth<=650){$('#reader').classList.add('no-outline');$('#toggle-outline').setAttribute('aria-expanded','false')}}};
+$('#outline').onclick=e=>{const b=e.target.closest('[data-page]');if(b&&viewer?.pdfDocument){viewer.currentPageNumber=+b.dataset.page;if(compactReader.matches)setOutline(false)}};
 $('#previous').onclick=()=>{if(viewer?.pdfDocument)viewer.currentPageNumber=Math.max(1,viewer.currentPageNumber-1)};
 $('#next').onclick=()=>{if(viewer?.pdfDocument)viewer.currentPageNumber=Math.min(active.pages,viewer.currentPageNumber+1)};
 $('#page-number').onchange=e=>{if(viewer?.pdfDocument){viewer.currentPageNumber=Math.max(1,Math.min(active.pages,Math.floor(+e.target.value||1)));e.target.value=viewer.currentPageNumber}};
-$('#zoom-out').onclick=()=>{if(viewer?.pdfDocument)viewer.currentScale=Math.max(.3,viewer.currentScale/1.15)};
-$('#zoom-in').onclick=()=>{if(viewer?.pdfDocument)viewer.currentScale=Math.min(4,viewer.currentScale*1.15)};
+function zoom(factor){if(viewer?.pdfDocument){const bounds=$('#viewerContainer').getBoundingClientRect();viewer.updateScale({scaleFactor:Math.max(.1,Math.min(4,viewer.currentScale*factor))/viewer.currentScale,origin:[bounds.left+bounds.width/2,bounds.top+bounds.height/2]})}}
+$('#zoom-out').onclick=()=>zoom(1/1.15);
+$('#zoom-in').onclick=()=>zoom(1.15);
 $('#fit').onclick=()=>{if(viewer?.pdfDocument)viewer.currentScaleValue='page-width'};
-function refit(){requestAnimationFrame(()=>{if(viewer?.pdfDocument&&viewer.currentScaleValue==='page-width')viewer.currentScaleValue='page-width'})}
-$('#toggle-outline').onclick=()=>{$('#reader').classList.remove('focus');$('#reader').classList.toggle('no-outline');$('#toggle-outline').setAttribute('aria-expanded',!$('#reader').classList.contains('no-outline'));refit()};
+function refit(){if(refitFrame)return;refitFrame=requestAnimationFrame(()=>{refitFrame=0;if(!active||!viewer?.pdfDocument)return;const width=$('#viewerContainer').clientWidth;if(width===fittedWidth)return;fittedWidth=width;if(viewer.currentScaleValue==='page-width')viewer.currentScaleValue='page-width'})}
+function setOutline(open){$('#reader').classList.toggle('no-outline',!open);$('#toggle-outline').setAttribute('aria-expanded',String(open));refit()}
+$('#toggle-outline').onclick=()=>{$('#reader').classList.remove('focus');$('#focus-mode').setAttribute('aria-pressed','false');setOutline($('#reader').classList.contains('no-outline'))};
+$('#outline-dismiss').onclick=()=>setOutline(false);
 $('#focus-mode').onclick=()=>{$('#reader').classList.toggle('focus');$('#focus-mode').setAttribute('aria-pressed',$('#reader').classList.contains('focus'));refit()};
-window.addEventListener('resize',refit);
+new ResizeObserver(refit).observe($('#viewerContainer'));
+compactReader.addEventListener('change',e=>{if(active&&e.matches)setOutline(false)});
 function find(type='',previous=false){if(!eventBus)return;eventBus.dispatch('find',{source:window,type,query:$('#find-input').value,phraseSearch:true,caseSensitive:false,entireWord:false,highlightAll:true,findPrevious:previous,matchDiacritics:false});}
 function showFind(){$('#findbar').hidden=false;$('#find-input').focus()}
 function closeFind(){$('#findbar').hidden=true;eventBus?.dispatch('findbarclose',{source:window});$('#toggle-find').focus()}
@@ -90,6 +99,6 @@ $('#toggle-find').onclick=()=>$('#findbar').hidden?showFind():closeFind();
 $('#find-close').onclick=closeFind;
 $('#find-input').oninput=()=>find();$('#find-input').onkeydown=e=>{if(e.key==='Enter')find('again',e.shiftKey)};
 $('#find-next').onclick=()=>find('again');$('#find-prev').onclick=()=>find('again',true);
-document.addEventListener('keydown',e=>{if(active&&(e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();showFind()}if(e.key==='Escape'&&active){if(!$('#findbar').hidden)closeFind();else if($('#reader').classList.contains('focus')){$('#reader').classList.remove('focus');refit()}else if(innerWidth<=650&&!$('#reader').classList.contains('no-outline'))$('#reader').classList.add('no-outline')}
+document.addEventListener('keydown',e=>{if(active&&(e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();showFind()}if(e.key==='Escape'&&active){if(!$('#findbar').hidden)closeFind();else if($('#reader').classList.contains('focus')){$('#reader').classList.remove('focus');$('#focus-mode').setAttribute('aria-pressed','false');refit()}else if(compactReader.matches&&!$('#reader').classList.contains('no-outline'))setOutline(false)}
  if(!active&&e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();$('#catalog-search').focus()}});
 try{const response=await fetch('catalog.json',{cache:'no-cache'});if(!response.ok)throw Error('Catalog unavailable');catalog=await response.json();render();route()}catch(e){$('#cards').innerHTML='<p class="empty">Библиотека временно недоступна. Обновите страницу или откройте репозиторий.</p>';console.error(e)}

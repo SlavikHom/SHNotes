@@ -17,8 +17,9 @@ class BuildTests(unittest.TestCase):
             root = Path(temp)
             for directory in ("site/vendor", "MathLog", "DM"):
                 (root / directory).mkdir(parents=True)
-            for file in ("index.html", "style.css", "app.mjs"):
+            for file in ("index.html", "style.css", "app.mjs", "reader-touch.mjs"):
                 (root / "site" / file).write_text('"app.mjs" "style.css"', encoding="utf-8")
+            (root / "site" / "app.mjs").write_text("import './reader-touch.mjs';", encoding="utf-8")
             pdf = root / "MathLog" / "lecture-01.pdf"
             with pymupdf.open() as doc:
                 doc.new_page().insert_text((30, 40), "First lecture")
@@ -29,6 +30,11 @@ class BuildTests(unittest.TestCase):
             self.assertEqual(len(first), 1)
             self.assertEqual(first[0]["pages"], 1)
             self.assertEqual(first[0]["title"], "First lecture")
+            first_app = (out / "app.mjs").read_text(encoding="utf-8")
+            first_html = (out / "index.html").read_text(encoding="utf-8")
+            self.assertIn("reader-touch.mjs?v=", first_app)
+            # Updating only a dependency must invalidate the importing app too.
+            (root / "site" / "reader-touch.mjs").write_text("// Updated gestures", encoding="utf-8")
             with pymupdf.open(pdf) as doc:
                 doc.new_page()
                 doc.save(root / "updated.pdf")
@@ -37,6 +43,8 @@ class BuildTests(unittest.TestCase):
             self.assertEqual(updated[0]["id"], first[0]["id"])
             self.assertNotEqual(updated[0]["file"], first[0]["file"])
             self.assertEqual(updated[0]["pages"], 2)
+            self.assertNotEqual((out / "app.mjs").read_text(encoding="utf-8"), first_app)
+            self.assertNotEqual((out / "index.html").read_text(encoding="utf-8"), first_html)
             other = root / "DM" / pdf.name
             other.write_bytes(pdf.read_bytes())
             added = builder.build(root, out)

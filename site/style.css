@@ -30,4 +30,48 @@
 .reader.focus .reader-header{justify-content:flex-start}
 @media(max-width:760px){.reader-header .reader-tools .fit{flex-basis:76px;width:76px;min-width:76px;max-width:76px}}
 @media(max-width:560px){.reader-header>#toggle-outline{flex-basis:28px;width:28px}.reader-header .reader-tools .fit{flex-basis:58px;width:58px;min-width:58px;max-width:58px}}
+/* Native panning remains available in both directions after enlarging a PDF. */
+.reader{height:100vh;height:100dvh;bottom:auto}
+#viewerContainer{touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch;overflow-anchor:none}
+.outline{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;min-height:0}
+.outline-dismiss{display:none}
+.pdfViewer{padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}
+@media(max-width:900px), (max-width:1200px) and (pointer:coarse){
+ .reader{--sidebar:0px;--header:calc(104px + env(safe-area-inset-top,0px));--toolbar:0px}
+ .reader-header{display:grid;grid-template-columns:44px 44px minmax(0,1fr) 44px;grid-template-rows:52px 52px;gap:0;align-items:center;padding:env(safe-area-inset-top,0px) max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px))}
+ .reader-header>#toggle-outline{grid-column:1;width:44px;height:44px}
+ .reader-header .back{grid-column:2;width:44px;height:44px;justify-content:center}
+ .reader-header .back span,.reader-header .download span{display:none}
+ .reader-heading{grid-column:3;display:block;min-width:0;padding:0 8px;border:0}
+ .reader-heading strong{font-size:13px}
+ .reader-heading small{font-size:9px}
+ .reader-header .download{grid-column:4;margin:0;width:44px;height:44px;display:grid;place-items:center;font-size:24px}
+ .reader-header .reader-tools{grid-column:1/-1;grid-row:2;display:flex;flex:initial;width:100%;justify-content:center;gap:4px;border-top:1px solid var(--line);height:52px}
+ .reader-tools button{min-width:44px;height:44px;padding:0}
+ .reader-header .reader-tools .fit{flex:0 0 88px;width:88px;min-width:88px;max-width:88px;font-size:12px}
+ .reader-tools .tool-divider{display:none}
+ .page-control{gap:4px;font-size:12px}
+ .page-control input{width:42px;height:40px;font-size:16px}
+ .outline-panel{width:min(300px,85vw);box-shadow:15px 0 40px #0007}
+ .reader:not(.no-outline):not(.focus) .outline-dismiss{display:block;position:absolute;inset:var(--header) 0 0;z-index:2;background:#0006;touch-action:manipulation}
+ .reader.focus{--header:calc(52px + env(safe-area-inset-top,0px));--sidebar:0px}
+ .reader.focus .reader-header{display:grid;grid-template-rows:0 52px}
+ .reader.focus .reader-header>#toggle-outline,.reader.focus .reader-heading,.reader.focus .back,.reader.focus .download{display:none}
+ .reader.focus .reader-tools{margin:0;border-top:0}
+ #viewerContainer{left:env(safe-area-inset-left,0px);right:env(safe-area-inset-right,0px)}
+ .findbar{left:8px;right:8px;gap:4px}
+ .findbar input{width:100%;min-width:0;font-size:16px}
+ .findbar button{min-width:36px;min-height:44px;padding:4px}
+ .pdfViewer{padding-top:12px;--page-margin:0 auto 12px}
+}
+@media(max-width:560px){
+ .reader-header{padding-inline:max(6px,env(safe-area-inset-left,0px)) max(6px,env(safe-area-inset-right,0px))}
+ .reader-header .reader-tools{gap:0;justify-content:space-between}
+ .reader-tools button{min-width:36px;width:36px;flex-shrink:0}
+ .reader-header .reader-tools .fit{display:block;flex:0 0 58px;width:58px;min-width:58px;max-width:58px;font-size:11px}
+ .page-control input{width:36px}
+ .page-control{font-size:11px}
+ .reader.focus .reader-tools{justify-content:center;gap:2px}
+}
+@media(max-width:340px){.reader-tools #focus-mode{display:none}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}

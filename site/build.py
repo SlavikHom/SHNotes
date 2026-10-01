@@ -61,7 +61,7 @@ def build(root, output):
     with tempfile.TemporaryDirectory(prefix="shnotes-build-", dir=output.parent) as temp:
         stage = Path(temp) / "public"
         stage.mkdir()
-        for file in ("index.html", "style.css", "app.mjs"):
+        for file in ("index.html", "style.css", "app.mjs", "reader-touch.mjs"):
             shutil.copy2(root / "site" / file, stage / file)
         shutil.copytree(root / "site" / "vendor", stage / "vendor")
         (stage / "covers").mkdir()
@@ -96,6 +96,10 @@ def build(root, output):
         catalog.sort(key=lambda x: (order[x["course"]], x["number"] or 0, x["title"]))
         (stage / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2), encoding="utf-8")
         (stage / ".nojekyll").touch()
+        # Version the imported gesture module too, so a deploy cannot mix revisions.
+        app = stage / "app.mjs"
+        touch_revision = hashlib.sha256((stage / "reader-touch.mjs").read_bytes()).hexdigest()[:12]
+        app.write_text(app.read_text(encoding="utf-8").replace("'./reader-touch.mjs'", f"'./reader-touch.mjs?v={touch_revision}'"), encoding="utf-8")
         html = (stage / "index.html").read_text(encoding="utf-8")
         for filename in ("app.mjs", "style.css"):
             revision = hashlib.sha256((stage / filename).read_bytes()).hexdigest()[:12]
