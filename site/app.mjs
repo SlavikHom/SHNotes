@@ -1,9 +1,10 @@
-import {installPDFTouchGestures} from './reader-touch.mjs';
+import {installPDFTouchGestures,installPDFWheelZoom} from './reader-touch.mjs';
 const $=s=>document.querySelector(s);
 let catalog=[],course='all',active=null,viewer=null,eventBus=null,linkService=null,findController=null,loadingTask=null,loadId=0;
 const compactReader=matchMedia('(max-width:900px), (max-width:1200px) and (pointer:coarse)');
 let fittedWidth=0,refitFrame=0;
 const resetTouch=installPDFTouchGestures($('#viewerContainer'),()=>active?viewer:null);
+const resetWheel=installPDFWheelZoom($('#reader'),()=>active?viewer:null);
 let memory={};try{memory=JSON.parse(localStorage.getItem('shnotes.reading.v1')||'{}')}catch{}
 if(!memory||typeof memory!=='object')memory={};
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -55,7 +56,7 @@ function updatePage(page){
 }
 async function openReader(item,page){
  const thisLoad=++loadId;
- resetTouch();
+ resetTouch();resetWheel();
  active={...item,initialPage:page||pageOf(item.id)};
  $('#library').hidden=true;$('#reader').hidden=false;document.body.style.overflow='hidden';
  $('#reader').classList.remove('focus');$('#focus-mode').setAttribute('aria-pressed','false');
@@ -75,7 +76,7 @@ async function openReader(item,page){
   viewer.setDocument(doc);linkService.setDocument(doc);updatePage(Math.min(item.pages,Math.max(1,active.initialPage)));
  }catch(err){if(thisLoad!==loadId)return;$('#reader-status').textContent='Не удалось открыть читалку. Скачайте PDF кнопкой справа вверху.';console.error(err)}
 }
-function route(){const m=location.hash.match(/^#read\/([a-z0-9-]+)(?:\/(\d+))?$/);const item=m&&catalog.find(x=>x.id===m[1]);if(item){openReader(item,+m[2]||0)}else{loadId++;resetTouch();active=null;$('#reader').hidden=true;$('#library').hidden=false;document.body.style.overflow='';document.title='SH Notes — Библиотека';render();}}
+function route(){const m=location.hash.match(/^#read\/([a-z0-9-]+)(?:\/(\d+))?$/);const item=m&&catalog.find(x=>x.id===m[1]);if(item){openReader(item,+m[2]||0)}else{loadId++;resetTouch();resetWheel();active=null;$('#reader').hidden=true;$('#library').hidden=false;document.body.style.overflow='';document.title='SH Notes — Библиотека';render();}}
 window.addEventListener('hashchange',route);
 $('#outline').onclick=e=>{const b=e.target.closest('[data-page]');if(b&&viewer?.pdfDocument){viewer.currentPageNumber=+b.dataset.page;if(compactReader.matches)setOutline(false)}};
 $('#previous').onclick=()=>{if(viewer?.pdfDocument)viewer.currentPageNumber=Math.max(1,viewer.currentPageNumber-1)};
