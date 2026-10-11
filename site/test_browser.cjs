@@ -230,8 +230,10 @@ test('failed PDF load offers retry and a direct link; rapid navigation does not 
     assert.match(await page.locator('#fallback-pdf').getAttribute('href'), /#page=1$/);
     await page.unroute('**/*.pdf?*'); await page.locator('#retry-pdf').click(); await loaded(page);
     await page.locator('#back').click(); await page.locator('.lecture-card').nth(1).click(); await page.locator('#back').click();
-    await page.locator('.lecture-card').nth(2).click(); await loaded(page);
-    assert.match(await page.locator('#reader-title').innerText(), /Типы/);
+    const target = page.locator('.lecture-card').nth(2);
+    const expectedTitle = await target.locator('.card-title').innerText();
+    await target.click(); await loaded(page);
+    assert.equal(await page.locator('#reader-title').innerText(), expectedTitle);
   } finally {await context.close()}
 });
 
