@@ -20,7 +20,10 @@ const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<'
 const removeIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>';
 const name = course => course === 'logic' ? 'Матлог' : 'Дискретка';
 const lectureLabel = item => item.number == null ? 'КОНСПЕКТ' : `ЛЕКЦИЯ ${String(item.number).padStart(2, '0')}`;
-const isCurrent = item => item.file.split('?')[0] === 'DM/discrete-colloquium-preparation.pdf';
+const isCurrent = item => [
+  'DM/discrete-colloquium-preparation.pdf',
+  'MathLog/mathlog-colloquium-preparation.pdf',
+].includes(item.file.split('?')[0]);
 const plural = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many;
 for (const [key, assign] of [['shnotes.reading.v1', value => memory = value], ['shnotes.bookmarks.v1', value => bookmarks = value]]) {
   try {const value = JSON.parse(localStorage.getItem(key) || '{}'); if (value && typeof value === 'object' && !Array.isArray(value)) assign(value)} catch {}
