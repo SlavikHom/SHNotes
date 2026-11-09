@@ -16,7 +16,7 @@ class BuildTests(unittest.TestCase):
         scratch = Path(__file__).resolve().parents[2] / ".work" / "site"
         with tempfile.TemporaryDirectory(dir=scratch if scratch.exists() else None) as temp:
             root = Path(temp)
-            for directory in ("site/vendor", "MathLog", "DM"):
+            for directory in ("site/vendor", *builder.COURSES):
                 (root / directory).mkdir(parents=True)
             for file in builder.PUBLIC_FILES:
                 (root / "site" / file).write_text('"app.mjs" "style.css"', encoding="utf-8")
@@ -63,8 +63,19 @@ class BuildTests(unittest.TestCase):
             self.assertEqual(len(removed), 1)
             self.assertFalse((out / "MathLog" / pdf.name).exists())
             self.assertEqual((out / "DM" / other.name).read_bytes(), other.read_bytes())
+            # A colloquium part belongs to analysis and must not be labelled
+            # Lecture 01 merely because its filename contains a digit.
+            analysis = root / "MathAnalysis" / "mathanalysis-colloquium-1-part-1.pdf"
+            analysis.write_bytes(other.read_bytes())
+            expanded = builder.build(root, out)
+            item = next(x for x in expanded if x["course"] == "analysis")
+            self.assertIsNone(item["number"])
+            self.assertTrue(item["file"].startswith("MathAnalysis/"))
+            self.assertEqual((out / "MathAnalysis" / analysis.name).read_bytes(), analysis.read_bytes())
             with self.assertRaises(ValueError):
                 builder.build(root, root)
+            with self.assertRaises(ValueError):
+                builder.build(root, root / "MathAnalysis" / "_site")
 
 
 if __name__ == "__main__":

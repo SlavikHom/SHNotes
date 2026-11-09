@@ -28,6 +28,35 @@ after(async () => {
   }
 });
 const loaded = page => page.waitForFunction(() => document.querySelector('#reader-status').hidden);
+
+test('analysis filter opens the colloquium and its entire vector logo links to SH Notes', async () => {
+  const context = await browser.newContext({viewport: {width: 1366, height: 900}});
+  try {
+    const page = await context.newPage();
+    await page.goto(base);
+    await page.locator('.lecture-card').first().waitFor();
+    await page.locator('.filters [data-course="analysis"]').click();
+    assert.ok(await page.locator('.lecture-card').count() >= 1);
+    assert.ok((await page.locator('.card-course').allTextContents()).every(text => text.trim() === 'Матан'));
+    const colloquium = page.locator('.lecture-card').filter({hasText: /КЛК-1\. Часть 1/});
+    assert.equal(await colloquium.count(), 1);
+    assert.equal((await colloquium.locator('.card-number').innerText()).trim(), 'КОНСПЕКТ');
+    await visualProof(page, 'analysis-catalog');
+    await colloquium.click();
+    await loaded(page);
+    const logo = page.locator('.annotationLayer a[href="https://slavikhom.github.io/SHNotes/"]').first();
+    await logo.waitFor({state: 'visible'});
+    const bounds = await logo.boundingBox();
+    assert.ok(bounds.width > 70 && bounds.height > 10, 'link must cover the symbol and Notes');
+    await visualProof(page, 'analysis-cover');
+    await page.setViewportSize({width: 390, height: 844});
+    await page.goto(base);
+    await page.locator('.lecture-card').first().waitFor();
+    await page.locator('.filters [data-course="analysis"]').click();
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await visualProof(page, 'analysis-phone');
+  } finally {await context.close()}
+});
 async function visualProof(page, name) {
   if (!process.env.SHNOTES_VISUAL_DIR) return;
   await fs.mkdir(process.env.SHNOTES_VISUAL_DIR, {recursive: true});

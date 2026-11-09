@@ -6,6 +6,7 @@ on:
     paths:
       - 'MathLog/**'
       - 'DM/**'
+      - 'MathAnalysis/**'
       - 'site/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:

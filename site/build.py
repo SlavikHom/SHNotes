@@ -12,7 +12,11 @@ from urllib.parse import quote
 
 import pymupdf
 
-COURSES = {"MathLog": ("logic", "Математическая логика"), "DM": ("discrete", "Дискретная математика")}
+COURSES = {
+    "MathLog": ("logic", "Математическая логика"),
+    "DM": ("discrete", "Дискретная математика"),
+    "MathAnalysis": ("analysis", "Математический анализ"),
+}
 PUBLIC_FILES = ("index.html", "style.css", "app.mjs", "reader-touch.mjs", "reading-state.mjs", "search.mjs", "offline.mjs", "sw.js", "reader.css")
 
 
@@ -30,8 +34,9 @@ def describe(document, source, course_name):
             if text:
                 lines.append((text, max(s["size"] for s in spans), line["bbox"]))
     lecture = next((line for line in lines if re.search(r"ЛЕКЦИЯ\s*\d+", line[0], re.I)), None)
-    number_match = re.search(r"\d+", lecture[0] if lecture else source.stem)
-    number = int(number_match[0]) if number_match else None
+    number_match = (re.search(r"(\d+)", lecture[0]) if lecture else
+                    re.search(r"lecture[-_]?(\d+)", source.stem, re.I))
+    number = int(number_match[1]) if number_match else None
     # The SH Notes cover uses its largest type for the title below the lecture label.
     title_lines = [line for line in lines if line[1] >= 20 and
                    (lecture[2][3] if lecture else 0) < line[2][1] < page.rect.height * .55]
@@ -45,6 +50,9 @@ def describe(document, source, course_name):
         metadata_title = (document.metadata or {}).get("title", "").strip()
         title = metadata_title if metadata_title and metadata_title != course_name else source.stem.replace("_", " ")
         description = ""
+    metadata_title = (document.metadata or {}).get("title", "").strip()
+    if not lecture and metadata_title and metadata_title != course_name:
+        title = metadata_title
     return title, description, number
 
 
@@ -55,7 +63,7 @@ def build(root, output):
     # Never delete source directories or an arbitrary output location.
     if output.name != "_site" or output == root or output in root.parents:
         raise ValueError("Output must be a dedicated directory named _site, outside source directories")
-    for protected in (root / "site", root / "DM", root / "MathLog", root / ".git"):
+    for protected in (root / "site", root / ".git", *(root / directory for directory in COURSES)):
         if output == protected or protected in output.parents:
             raise ValueError(f"Output overlaps source directory: {protected}")
     output.parent.mkdir(parents=True, exist_ok=True)
